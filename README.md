@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/hammas159/urdu-nlp-toolkit/actions/workflows/ci.yml"><img src="https://github.com/hammas159/urdu-nlp-toolkit/actions/workflows/ci.yml/badge.svg" alt="ci"></a>
+  <a href="https://github.com/hammasbuilds/urdu-nlp-toolkit/actions/workflows/ci.yml"><img src="https://github.com/hammasbuilds/urdu-nlp-toolkit/actions/workflows/ci.yml/badge.svg" alt="ci"></a>
   <img src="https://img.shields.io/badge/python-3.11%2B-blue" alt="python">
   <img src="https://img.shields.io/badge/dependencies-zero-success" alt="deps">
   <img src="https://img.shields.io/badge/model%20downloads-none-success" alt="downloads">
@@ -207,7 +207,7 @@ MIT
 ## Run it yourself
 
 ```bash
-git clone https://github.com/hammas159/urdu-nlp-toolkit
+git clone https://github.com/hammasbuilds/urdu-nlp-toolkit
 cd urdu-nlp-toolkit
 
 pip install -e .        # no dependencies to resolve
