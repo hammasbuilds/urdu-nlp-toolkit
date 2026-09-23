@@ -210,7 +210,101 @@ class TestCleaning:
         assert remove_urls_and_mentions("دیکھیں https://x.com/a @user #tag") == "دیکھیں"
 
 
+class TestWrongDirection:
+    """Urdu fed to the Roman->Urdu direction must say so, not pretend it worked.
+
+    `_apply_rules` matches only Latin graphemes, so an Urdu token passed through it
+    came back unchanged - the correct output, labelled `rules`, as though the rule
+    engine had resolved it. `lexicon_coverage` then read 0.0, which says "guessed
+    badly" rather than "this input was not Roman Urdu".
+    """
+
+    def test_urdu_input_is_labelled_rather_than_claimed_as_transliterated(self):
+        result = transliterate_with_confidence("سرکاری")
+        assert result.text == "سرکاری"
+        assert result.sources == [("سرکاری", "already-urdu")]
+
+    def test_already_urdu_tokens_do_not_count_against_lexicon_coverage(self):
+        # All four Roman words are in the lexicon; the Urdu one is not a miss.
+        result = transliterate_with_confidence("main theek hoon سرکاری")
+        assert result.lexicon_coverage == 1.0
+        assert result.already_urdu_share == 0.25
+
+    def test_a_fully_urdu_string_reports_it_was_the_wrong_direction(self):
+        result = transliterate_with_confidence("یہ اچھا ہے")
+        assert result.already_urdu_share == 1.0
+
+    def test_mixed_script_keeps_the_urdu_and_converts_the_roman(self):
+        result = transliterate_with_confidence("mera naam علی hai")
+        kinds = dict(result.sources)
+        assert kinds["علی"] == "already-urdu"
+        assert kinds["mera"] == "lexicon"
+
+
+class TestDocumentedExamples:
+    """The README's examples must be what the code returns.
+
+    This one was wrong: the README showed `Ali` resolving to علی, which is what a
+    reader expects and not what the rules produce. ع cannot be written in Roman and
+    no lexicon covers proper nouns, so the honest output is الی - and `sources`
+    saying `rules` is the whole point of the design.
+    """
+
+    def test_the_readme_transliteration_example(self):
+        result = transliterate_with_confidence("mera naam Ali hai")
+        assert result.text == "میرا نام الی ہے"
+        assert result.lexicon_coverage == 0.5
+        assert dict(result.sources)["Ali"] == "rules"
+
+
 class TestRoundTrip:
     def test_normalising_a_transliteration_is_stable(self):
         urdu = transliterate_to_urdu("main theek hoon")
         assert normalize(urdu) == urdu
+
+    def test_dropping_short_vowels_round_trips_better(self):
+        """Measured on 457,428 corpus tokens: 61.2% without, 44.7% with.
+
+        Every inserted short vowel returns as an alef, so the readable Roman form is
+        the one that cannot be converted back. Both settings are correct for
+        different jobs, and docs/CORPUS.md has the numbers.
+        """
+        # Words with no ambiguous consonant, so the vowel setting is the only
+        # variable. Picked by checking, not by assumption: the first draft of this
+        # test used صرف, which fails BOTH ways because ص and س both romanise to `s`.
+        # That is the collapse tested below, not the vowel problem.
+        for word in ("کتاب", "پاکستان", "مشکل", "تقریبا", "امریکی"):
+            with_vowels = transliterate_to_urdu(transliterate_to_roman(word))
+            without = transliterate_to_urdu(transliterate_to_roman(word, insert_short_vowels=False))
+            assert without == word, f"{word} should survive without inserted vowels"
+            assert with_vowels != word, f"{word} unexpectedly survived WITH them"
+
+    def test_letters_sharing_a_roman_form_cannot_round_trip_either_way(self):
+        """A loss no setting recovers, and the reason 100% is not the target.
+
+        Urdu distinguishes letters that Roman spells identically, so the mapping back
+        can only pick one. These are properties of the two writing systems, not gaps
+        in the implementation.
+        """
+        collapses = {
+            "صرف": "س",  # ص and س both romanise to `s`
+            "حسن": "ہ",  # ح, ہ and ھ all romanise to `h`
+            "بیماریاں": "ن",  # ں (nasalisation) is written as a plain `n`
+        }
+        for word, expected_substitute in collapses.items():
+            for insert in (True, False):
+                back = transliterate_to_urdu(
+                    transliterate_to_roman(word, insert_short_vowels=insert)
+                )
+                assert back != word
+            bare = transliterate_to_urdu(transliterate_to_roman(word, insert_short_vowels=False))
+            assert expected_substitute in bare
+
+    def test_a_word_with_no_ambiguity_round_trips_under_both_settings(self):
+        """The control. Without it the two tests above could be describing a
+        transliterator that simply never round-trips anything."""
+        assert transliterate_to_urdu(transliterate_to_roman("لاہور")) == "لاہور"
+        assert (
+            transliterate_to_urdu(transliterate_to_roman("لاہور", insert_short_vowels=False))
+            == "لاہور"
+        )

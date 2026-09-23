@@ -5,6 +5,7 @@
   <a href="#why-this-exists">Why this exists</a> &middot;
   <a href="#what-it-does">What it does</a> &middot;
   <a href="#install">Install</a> &middot;
+  <a href="docs/CORPUS.md">Measured on 84,581 articles</a> &middot;
   <a href="#known-limits">Known limits</a> &middot;
   <a href="#problems-hit-while-building-this">Problems hit</a>
 </p>
@@ -61,6 +62,13 @@ same word.
 normalize("كتاب") == normalize("کتاب")   # True. Without it: False.
 ```
 
+**Measured on 84,581 BBC Urdu news articles** (44.7M tokens): **7,410 articles — one in
+eleven — contain an Arabic codepoint standing in for an Urdu one.** 20,555 occurrences of
+`U+064A` ARABIC YEH alone, in professionally edited copy. Unicode NFC does not touch any of
+them, because they are genuinely different letters used by different languages.
+
+&#128202; **[Every claim on this page, measured against the corpus &rarr;](docs/CORPUS.md)**
+
 ### Roman Urdu, which is what people actually type
 
 Most Pakistanis type Urdu in Latin script — in messages, comments, reviews, support
@@ -76,15 +84,41 @@ which one answered**:
 
 ```python
 r = transliterate_with_confidence("mera naam Ali hai")
-r.text               # 'میرا نام علی ہے'
+r.text               # 'میرا نام الی ہے'
 r.lexicon_coverage   # 0.5  — half looked up, half guessed by rule
+r.sources            # [('mera','lexicon'), ('naam','rules'),
+                     #  ('Ali','rules'), ('hai','lexicon')]
 ```
+
+`Ali` comes back as `الی`, not the conventional `علی`, because ع cannot be written in Roman
+and no lexicon covers proper nouns. The function says so — `rules`, not `lexicon` — rather
+than presenting a guess as a lookup.
 
 A curated lexicon covers the closed-class vocabulary — pronouns, postpositions,
 auxiliaries — which is where most tokens in real text actually are, and which rules
 cannot disambiguate (`khana` is کھانا *food* or خانہ *compartment*). Longest-match
 grapheme rules handle the rest, because no lexicon covers proper nouns. Hiding that
 distinction behind a single string would be the dishonest design.
+
+**"Where most tokens actually are" is measurable, so it was measured**: the 115-word
+stopword list covers **41.4% of 44.7M tokens**, and 114 of the 115 entries appear in the
+corpus at all.
+
+### Transliteration is lossy, and the default is the worse round-trip
+
+Round-tripping 457,428 sampled tokens, Urdu → Roman → Urdu:
+
+| `insert_short_vowels` | Exact round-trip |
+|---|---:|
+| `True` **(default)** | 44.7% |
+| `False` | **61.2%** |
+
+Urdu does not write short vowels, so `صرف` maps to `srf` — unreadable to an English
+speaker. Inserting them gives `saraf`, which is what Roman Urdu users actually type, but
+every inserted vowel returns as an alef: `ساراف`.
+
+**Use the default when a person reads the output; use `insert_short_vowels=False` when
+something has to convert it back.** The README previously documented neither.
 
 ## What it does
 
@@ -117,11 +151,23 @@ remove_stopwords(words("یہ اچھا نہیں ہے"))   # ['اچھا', 'نہی�
 ## Install
 
 ```bash
-pip install urdu-nlp-toolkit
+pip install git+https://github.com/hammasbuilds/urdu-nlp-toolkit
 ```
+
+**Not on PyPI yet**, so `pip install urdu-nlp-toolkit` does not work. This README said it
+did, which is worse than saying nothing — anything depending on that line fails to install.
 
 No dependencies, deliberately. This is the layer other Urdu projects sit on, and a
 dependency here becomes a dependency of all of them.
+
+From a clone, there is nothing to install at all:
+
+```bash
+git clone https://github.com/hammasbuilds/urdu-nlp-toolkit
+cd urdu-nlp-toolkit
+python demo.py
+pytest -q          # 57 tests, no install step needed
+```
 
 ---
 
@@ -184,11 +230,20 @@ Stated plainly, because a toolkit that overclaims wastes its users' time:
   syntax and passed through untouched. Strip English spans yourself if you have a
   reliable way to find them.
 - **Urdu → Roman is lossy and one-way.** س ص ث all give `s`; the merge cannot be
-  undone.
+  undone. Measured over 457,428 corpus tokens, **44.7% survive a round-trip** with the
+  default settings and **61.2% with `insert_short_vowels=False`**. The remaining 38.8%
+  is letter collapse that no setting recovers — ح/ہ/ھ all `h`, خ and کھ both `kh`, and
+  ں nasalisation written as a plain `n`.
 - **Short vowels are inserted heuristically.** Urdu does not write them, so a literal
   mapping gives `jmlh` for جملہ. An `a` between consonants gives `jamalah` — right
   more often than not, wrong sometimes, and disabled with
-  `insert_short_vowels=False`.
+  `insert_short_vowels=False`. **The default is the worse round-trip**: every inserted
+  vowel returns as an alef, so `صرف` → `saraf` → `ساراف`. Readable output and
+  reversible output are different goals; pick the setting for the one you need.
+- **Feeding Urdu to the Roman → Urdu direction is a no-op, and now says so.** Tokens
+  already in Urdu script are reported as `already-urdu` rather than `rules`, and
+  `already_urdu_share` tells you. Previously they were returned untouched and labelled
+  as though the rule engine had resolved them.
 - **Compound-splitting is a fixed list**, not a model. Deliberately: an aggressive
   splitter does more damage than an incomplete one.
 - **No stemmer or lemmatiser.** Urdu morphology needs a lexicon that does not exist
@@ -210,8 +265,8 @@ MIT
 git clone https://github.com/hammasbuilds/urdu-nlp-toolkit
 cd urdu-nlp-toolkit
 
-pip install -e .        # no dependencies to resolve
-pytest -q               # 49 tests, ~1 second
+pytest -q               # 57 tests, no install step needed
+python demo.py          # see it work
 ```
 
 ```python
@@ -245,3 +300,36 @@ pretending a heuristic is a rule is how a toolkit loses trust.
 **Negation was almost a stopword.** The first stopword list included `نہیں`. That
 single word carries the meaning of a sentence, and removing it inverts every sentiment
 label. *Fixed* by holding negation in a separate set that is preserved by default.
+
+**`pip install urdu-nlp-toolkit` did not work, and this README said it did.** The
+package is not on PyPI. Anything that followed that instruction failed to install, which
+is strictly worse than documenting no install method at all. *Fixed* by publishing the
+`git+https` form that works today and saying plainly that PyPI is pending.
+
+**`pytest` failed from a fresh clone.** The package lives in `src/`, so `import urdunlp`
+only resolved after `pip install -e .`. CI does that before running tests, so CI was
+green the whole time while anyone cloning the repository got `ModuleNotFoundError`. A
+project whose claim is "zero dependencies, nothing to download" should not need an
+install step to run its own tests. *Fixed* with a `conftest.py`.
+
+**Urdu fed to the Roman → Urdu direction was reported as successfully transliterated.**
+`_apply_rules` matches Latin graphemes only, so an Urdu token passed straight through —
+the right output, labelled `rules`, as though the rule engine had resolved it. With
+`lexicon_coverage` then reading `0.0`, a call in the wrong direction looked like a
+confident bad guess rather than a no-op. *Fixed* with an `already-urdu` source and an
+`already_urdu_share` property.
+
+**The README's own transliteration example was wrong.** It showed
+`mera naam Ali hai` → `میرا نام علی ہے`. The code returns `الی`, because ع is unwritable
+in Roman and no lexicon covers proper nouns. The published output was what a reader
+expects rather than what the function does. *Fixed*, and pinned by a test so the
+documented example cannot drift from the code again.
+
+**A measurement script that measured nothing.** The first version of
+`scripts/measure_corpus.py` computed `normalize(t) != t` over tokens from `words()` —
+but `words()` normalises internally, so the comparison was false for every token by
+construction. It reported a 0% normalisation rate across 247,064 tokens, which reads
+like a finding and is a tautology. *Fixed* by measuring against raw whitespace tokens.
+A second version round-tripped with `transliterate_with_confidence`, which is the
+*Roman → Urdu* direction: fed Urdu it returns the input untouched, so the round-trip was
+identity in, identity out, and reported **99.96%**. The real figure is 44.7%.

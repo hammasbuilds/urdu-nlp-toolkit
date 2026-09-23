@@ -1,0 +1,164 @@
+# Measured against 84,581 real Urdu articles
+
+[<- back to README](../README.md)
+
+Every claim this toolkit makes was qualitative. This measures them against
+[XL-Sum Urdu](https://huggingface.co/datasets/csebuetnlp/xlsum): **84,581 BBC Urdu news
+articles, 206,887,475 characters, 44,698,779 tokens**.
+
+Reproduce it on any corpus:
+
+```bash
+python scripts/measure_corpus.py <directory-of-txt-or-a-parquet> --json out.json
+```
+
+## The corpus
+
+| | |
+|---|---:|
+| Articles | 84,581 |
+| Characters | 206,887,475 |
+| Tokens | 44,698,779 |
+| Distinct normalised types | 353,653 |
+
+---
+
+## 1. The Arabic/Urdu codepoint problem is real, and it is common
+
+The README claims scraped Urdu freely mixes Arabic codepoints with Urdu ones. It does.
+
+**7,410 of 84,581 articles (8.8%)** contain at least one Arabic letter standing in for its
+Urdu counterpart — in professionally edited BBC copy, not user-generated text.
+
+| Codepoint | Should be | Occurrences |
+|---|---|---:|
+| `U+064A` ARABIC YEH | `U+06CC` FARSI YEH | **20,555** |
+| `U+0643` ARABIC KAF | `U+06A9` KEHEH | **4,132** |
+| `U+0649` ALEF MAKSURA | `U+06CC` FARSI YEH | 40 |
+| `U+0629` TEH MARBUTA | `U+06C1` HEH GOAL | 20 |
+
+`normalize()` fixes **23,084 tokens** that Unicode NFC leaves alone, because these are
+genuinely distinct codepoints for distinct languages.
+
+Nearly one article in eleven. Any exact-match lookup, vocabulary build or deduplication
+over this corpus is silently wrong without normalisation.
+
+## 2. Normalisation moves 0.59% of tokens, and merges 14,442 types
+
+| | |
+|---|---:|
+| Raw whitespace tokens | 44,682,626 |
+| Changed by `normalize()` | **262,881** (0.59%) |
+| Types written more than one way | **14,442** |
+| Tokens moved onto the majority spelling | 209,990 |
+
+0.59% sounds small until you notice it is concentrated: 14,442 distinct words appear in two
+or more spellings, and 209,990 token instances are the minority form. Those are exactly the
+words a vocabulary fragments on.
+
+## 3. 115 stopwords cover 41.4% of running text
+
+The README calls the list "closed-class vocabulary — pronouns, postpositions, auxiliaries —
+which is where most tokens in real text actually are". Measured:
+
+| | |
+|---|---:|
+| Stopword list size | 115 |
+| Entries that appear in the corpus | **114 of 115** |
+| Token hits | 18,492,075 |
+| **Share of all tokens** | **41.4%** |
+
+114 of 115 entries earn their place. The ten most frequent types in 44.7M tokens:
+
+| | Count | | Count |
+|---|---:|---|---:|
+| کے | 2,047,014 | اور | 830,808 |
+| میں | 1,472,477 | کہ | 770,042 |
+| کی | 1,327,136 | نے | 758,610 |
+| ہے | 1,093,614 | کا | 713,233 |
+| سے | 893,078 | کو | 670,246 |
+
+Every one is a function word. That is the claim, measured.
+
+## 4. Transliteration is lossy — and the default setting is the worse one
+
+Round-tripping Urdu → Roman → Urdu on **457,428 sampled tokens** (every 97th, spread across
+the whole corpus, 21,653 distinct types):
+
+| `insert_short_vowels` | Exact round-trip |
+|---|---:|
+| `True` **(the default)** | **44.7%** |
+| `False` | **61.2%** |
+
+**The default round-trips 16.5 points worse than turning it off.** That is not a bug in the
+round-trip — it is the cost of the default being right for its actual job. Urdu does not
+write short vowels, so `صرف` maps to the consonants `srf`, which no English reader can
+pronounce. Inserting them gives `saraf`, which is readable and is what Roman Urdu users
+type. But every inserted vowel comes back as an alef:
+
+| Urdu | Roman (default) | Back | Roman (bare) | Back |
+|---|---|---|---|---|
+| کتاب | `katab` | کاتاب ✗ | `ktab` | کتاب ✓ |
+| پاکستان | `pakasatan` | پاکاساتان ✗ | `pakstan` | پاکستان ✓ |
+| مشکل | `mashakal` | ماشاکال ✗ | `mshkl` | مشکل ✓ |
+| تقریبا | `taqariba` | تاقاریبا ✗ | `tqriba` | تقریبا ✓ |
+| امریکی | `amariki` | اماریکی ✗ | `amriki` | امریکی ✓ |
+
+So: use the default when a human reads the output, and `insert_short_vowels=False` when
+something has to convert it back.
+
+### Three losses no setting recovers
+
+The remaining 38.8% is not the vowel setting. Urdu distinguishes letters that Roman spells
+identically, so the map back can only pick one:
+
+| Urdu | Bare roman | Back | What collapsed |
+|---|---|---|---|
+| صرف | `srf` | سرف | ص and س are both `s` |
+| حسن | `hsn` | ہسن | ح, ہ and ھ are all `h` |
+| بیماریاں | `bimarian` | بیماریان | ں nasalisation is a plain `n` |
+| اختلافات | `akhtlafat` | اکھتلافات | خ and کھ are both `kh` |
+
+`لاہور` → `lahor` → `لاہور` round-trips under **both** settings — no ambiguous letter, no
+inserted vowel. That is the control: without it, the rows above could be describing a
+transliterator that never round-trips anything.
+
+These are properties of the two writing systems, not of the implementation. A round-trip
+figure of 100% would mean the transliteration was not doing its job.
+
+*(The first draft of this table used `صرف` as a vowel example. It is not one — it fails
+both ways because of the sibilant collapse. The test that pins these examples caught it.)*
+
+## 5. The lexicon is small on purpose, and the README's own example shows why
+
+249 lexicon entries and 55 grapheme rules. The lexicon deliberately covers closed-class
+vocabulary — the words rules cannot disambiguate — and not proper nouns:
+
+```python
+>>> transliterate_with_confidence("mera naam Ali hai")
+Transliteration(text='میرا نام الی ہے',
+                sources=[('mera', 'lexicon'), ('naam', 'rules'),
+                         ('Ali', 'rules'), ('hai', 'lexicon')])
+```
+
+`Ali` resolves by rule to `الی`, not the conventional `علی`, because ع is unwritable in
+Roman and no lexicon covers names. `lexicon_coverage` reports `0.5` rather than hiding it.
+
+An earlier version of this page, and the README, showed `علی` in that output. That was
+wrong: it is what the reader expects, not what the code returns.
+
+---
+
+## What this does not measure
+
+**One corpus, one register.** XL-Sum Urdu is edited BBC news prose. Social media, legal
+text, poetry and transcribed speech all differ, and the Arabic-substitution rate is very
+likely *higher* in user-generated text than the 8.8% measured in professional copy.
+
+**No Roman Urdu corpus.** Every number about the Roman → Urdu direction here is derived by
+round-tripping Urdu, which is not the same as measuring real Roman Urdu input. A corpus of
+what people actually type is the single most valuable thing missing.
+
+**No accuracy figure for transliteration.** Round-trip fidelity is not correctness — a
+wrong-but-stable mapping round-trips perfectly. Measuring correctness needs human-checked
+pairs, which do not exist for Urdu at any useful scale.

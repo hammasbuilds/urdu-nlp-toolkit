@@ -446,21 +446,44 @@ _PASSTHROUGH = re.compile(
 )
 
 
+# Any character in the Arabic/Urdu blocks. Used to spot text that is already in
+# Urdu script, which the Roman->Urdu direction must not claim to have converted.
+_IS_URDU_SCRIPT = re.compile(r"[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]")
+
+
 @dataclass
 class Transliteration:
     text: str
     # Per token: "lexicon" (trusted), "rules" (best effort), "passthrough"
-    # (punctuation and digits) or "identifier" (a URL, email, @mention or
-    # #hashtag, emitted verbatim).
+    # (punctuation and digits), "identifier" (a URL, email, @mention or #hashtag,
+    # emitted verbatim) or "already-urdu" (the token was not Roman at all).
     sources: list[tuple[str, str]]
 
     @property
     def lexicon_coverage(self) -> float:
-        """Share of alphabetic tokens resolved by the lexicon rather than guessed."""
-        words = [s for t, s in self.sources if t.isalpha()]
+        """Share of Roman words resolved by the lexicon rather than guessed by rule.
+
+        Tokens already in Urdu script are excluded from the denominator. They are not
+        words the lexicon failed on - there was nothing to look up - and counting them
+        made a wrong-direction call report 0.0 coverage, which reads as a confident bad
+        answer rather than as "this input was not Roman Urdu".
+        """
+        words = [s for t, s in self.sources if t.isalpha() and s != "already-urdu"]
         if not words:
             return 0.0
         return round(sum(1 for s in words if s == "lexicon") / len(words), 4)
+
+    @property
+    def already_urdu_share(self) -> float:
+        """Share of alphabetic tokens that were already Urdu script.
+
+        A non-zero value on input you believed was Roman Urdu means the text is mixed,
+        or the call is in the wrong direction.
+        """
+        words = [s for t, s in self.sources if t.isalpha()]
+        if not words:
+            return 0.0
+        return round(sum(1 for s in words if s == "already-urdu") / len(words), 4)
 
 
 def _apply_rules(token: str) -> str:
@@ -496,6 +519,18 @@ def transliterate_with_confidence(text: str) -> Transliteration:
             if not token.isalpha():
                 pieces.append(token)
                 sources.append((token, "passthrough"))
+                continue
+            if _IS_URDU_SCRIPT.search(token):
+                # Already in Urdu script: this direction has nothing to do.
+                #
+                # Without this the token fell through to _apply_rules, which matches
+                # only Latin graphemes and so returned it unchanged - correct output
+                # labelled `rules`, as though the rule engine had resolved it. Feeding
+                # Urdu to the Roman->Urdu direction by mistake then produced a result
+                # that looked transliterated, with `lexicon_coverage` reading 0.0,
+                # which says "guessed badly" rather than "wrong direction".
+                pieces.append(token)
+                sources.append((token, "already-urdu"))
                 continue
             lowered = token.lower()
             if lowered in LEXICON:
