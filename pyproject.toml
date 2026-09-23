@@ -11,8 +11,19 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Natural Language :: Urdu",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    # Listed one by one so PyPI's sidebar shows what is supported. Every version
+    # here is exercised by CI on both Linux and Windows; the claim is tested, not
+    # asserted.
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: Implementation :: CPython",
     "Topic :: Text Processing :: Linguistic",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
 ]
 # No dependencies. Deliberate: this is the layer everything else sits on, and a
 # dependency here becomes a dependency of every Urdu project that uses it.
@@ -21,6 +32,9 @@ dependencies = []
 [project.urls]
 Homepage = "https://github.com/hammasbuilds/urdu-nlp-toolkit"
 Issues = "https://github.com/hammasbuilds/urdu-nlp-toolkit/issues"
+Source = "https://github.com/hammasbuilds/urdu-nlp-toolkit"
+Changelog = "https://github.com/hammasbuilds/urdu-nlp-toolkit/releases"
+"Corpus measurements" = "https://github.com/hammasbuilds/urdu-nlp-toolkit/blob/main/docs/CORPUS.md"
 
 [dependency-groups]
 dev = ["pytest>=8.3", "ruff>=0.8"]
@@ -31,6 +45,26 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/urdunlp"]
+# py.typed has no extension and is empty, so it is exactly the kind of file a
+# build backend drops. Without it in the wheel, mypy and pyright ignore every
+# annotation in this package and callers get `Any` back from a fully typed
+# library - PEP 561 requires the marker to be shipped, not just the hints.
+artifacts = ["src/urdunlp/py.typed"]
+
+[tool.hatch.build.targets.sdist]
+# The sdist should carry everything needed to rebuild and verify, which means the
+# tests and the corpus measurement script, not only the importable package.
+include = [
+    "src/urdunlp",
+    "tests",
+    "scripts",
+    "docs",
+    "conftest.py",
+    "demo.py",
+    "README.md",
+    "LICENSE",
+    "pyproject.toml",
+]
 
 [tool.ruff]
 line-length = 100
