@@ -229,7 +229,7 @@ renderer without HarfBuzz shaping produces disconnected letters in the wrong ord
 pytest
 ```
 
-**49 tests.** Each encodes a real property of the language rather than a convenient
+**74 tests.** Each encodes a real property of the language rather than a convenient
 example, so a failure means the library is wrong about Urdu, not about a fixture.
 
 ## Known limits
