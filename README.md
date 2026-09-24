@@ -333,6 +333,17 @@ in Roman and no lexicon covers proper nouns. The published output was what a rea
 expects rather than what the function does. *Fixed*, and pinned by a test so the
 documented example cannot drift from the code again.
 
+**`fix_spacing` missed a fifth of the compounds it exists to repair.** It split the
+input on whitespace, so any punctuation stayed glued to the token: `کردیا` matched the
+table and `کردیا۔` did not. These are perfective auxiliaries, so the end of a clause is
+exactly where they sit. Across all 84,581 articles there are **60,305 occurrences of the
+19 compounds, and whitespace splitting found 48,582 — missing 11,723, or 19.4%.** The
+per-word split is the proof: the completive `ہوگئے` was missed **34.2%** of the time and
+`کردیں` **35.6%**, while the progressive `کررہے`, which sits mid-clause, was missed
+**0.7%**. *Fixed* by matching word spans, which also stopped the function reflowing the
+whole document — `" ".join(text.split())` collapsed every newline and indent as a side
+effect of inserting one space.
+
 **A measurement script that measured nothing.** The first version of
 `scripts/measure_corpus.py` computed `normalize(t) != t` over tokens from `words()` —
 but `words()` normalises internally, so the comparison was false for every token by

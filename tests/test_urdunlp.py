@@ -99,6 +99,24 @@ class TestTokenize:
         """An aggressive splitter does more damage than an incomplete one."""
         assert fix_spacing("کردیانہ") == "کردیانہ"
 
+    @pytest.mark.parametrize("mark", ["۔", "،", "؟", "!", '"', ")"])
+    def test_a_merge_still_fires_next_to_punctuation(self, mark):
+        """These are perfective auxiliaries, so the end of a clause is where they
+        sit. Splitting the input on whitespace attached the punctuation to the
+        token, so "کردیا" was found and "کردیا۔" was not - and on XL-Sum Urdu the
+        second form is the more common one.
+        """
+        assert fix_spacing(f"اس نے کام کردیا{mark}") == f"اس نے کام کر دیا{mark}"
+
+    def test_fix_spacing_leaves_the_rest_of_the_text_alone(self):
+        """It used to be `" ".join(text.split())`, which reflowed the whole input:
+        newlines, indentation and runs of spaces all collapsed into one space.
+        That is a surprising thing for a function that inserts a space to do, and
+        it silently destroys paragraph structure in a document pipeline.
+        """
+        text = "پہلا جملہ۔\n\n    دوسرا  کردیا۔\n"
+        assert fix_spacing(text) == "پہلا جملہ۔\n\n    دوسرا  کر دیا۔\n"
+
     def test_ngrams_are_padded(self):
         assert character_ngrams("کتاب", 3)[0].startswith("<")
 

@@ -149,6 +149,45 @@ wrong: it is what the reader expects, not what the code returns.
 
 ---
 
+## 6. Merged compounds cluster at the end of a clause, where the old matcher could not see them
+
+`fix_spacing` repairs 19 compounds that Urdu typists routinely write without the space.
+It used to find them by splitting the text on whitespace, which attaches any adjacent
+punctuation to the token — so `کردیا` matched and `کردیا۔` did not.
+
+Over the full corpus, counting each compound as a word span rather than a whitespace
+chunk:
+
+| | count |
+|---|---:|
+| occurrences present | 60,305 |
+| found by whitespace splitting | 48,582 |
+| **missed** | **11,723 (19.4%)** |
+
+The loss is not spread evenly, and that is what identifies the cause. These compounds are
+verb + auxiliary. The *completive* ones end a clause, so a sentence mark sits against
+them; the *progressive* ones continue it:
+
+| compound | | occurrences | missed | |
+|---|---|---:|---:|---:|
+| `کردیں` | did | 1,069 | 381 | **35.6%** |
+| `ہوگئے` | became | 12,156 | 4,161 | **34.2%** |
+| `ہوگیا` | became | 6,428 | 1,792 | 27.9% |
+| `کردیا` | did | 10,291 | 1,898 | 18.4% |
+| `آرہا` | is coming | 821 | 48 | 5.8% |
+| `جارہا` | is going | 3,588 | 50 | 1.4% |
+| `کررہے` | are doing | 3,151 | 23 | **0.7%** |
+
+A fiftyfold difference in miss rate between `کردیں` and `کررہے` is not noise in the
+matcher — it is clause position, and it is why the bug was invisible to a unit test
+written from a single example.
+
+Matching word spans also stopped the function rewriting text it was not asked to touch:
+`" ".join(text.split())` collapsed every newline, indent and double space in the input as
+a side effect of inserting one.
+
+---
+
 ## What this does not measure
 
 **One corpus, one register.** XL-Sum Urdu is edited BBC news prose. Social media, legal

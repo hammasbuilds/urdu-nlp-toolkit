@@ -103,10 +103,21 @@ def words(text: str, *, keep_punctuation: bool = False) -> list[str]:
 def fix_spacing(text: str) -> str:
     """Insert the missing space in common merged compounds.
 
-    Applied per token so a merge only fires on a whole word, never on a substring of
-    a longer one - "کردیا" splits, "کردیانہ" does not.
+    A merge only fires on a whole word, never on a substring of a longer one -
+    "کردیا" splits, "کردیانہ" does not.
+
+    Matching is on word spans rather than on whitespace-separated chunks. Splitting
+    on whitespace attaches any adjacent punctuation to the token, so "کردیا" was
+    found and "کردیا۔" was not - and these are perfective auxiliaries, so the end
+    of a sentence is exactly where they like to sit. Every occurrence followed by
+    ۔ ، ؟ or a quote was missed, which on XL-Sum Urdu is most of them.
+
+    Working on spans also leaves the text alone between the words it rewrites.
+    `" ".join(text.split())` reflowed the whole input - newlines, indentation and
+    runs of spaces all collapsed to one space - which is a surprising thing for a
+    function that claims to insert a space to do.
     """
-    return " ".join(COMMON_MERGES.get(token, token) for token in text.split())
+    return _WORD.sub(lambda m: COMMON_MERGES.get(m.group(0), m.group(0)), text)
 
 
 def character_ngrams(text: str, n: int = 3, *, pad: bool = True) -> list[str]:
