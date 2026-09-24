@@ -15,7 +15,7 @@ name: release
 #   2. Add a "pending publisher" with:
 #        PyPI project name:  urdunlp
 #        Owner:              hammasbuilds
-#        Repository name:    urdu-nlp-toolkit
+#        Repository name:    urdunlp
 #        Workflow name:      release.yml
 #        Environment name:   pypi
 #

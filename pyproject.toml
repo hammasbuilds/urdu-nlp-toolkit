@@ -35,11 +35,11 @@ classifiers = [
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/hammasbuilds/urdu-nlp-toolkit"
-Issues = "https://github.com/hammasbuilds/urdu-nlp-toolkit/issues"
-Source = "https://github.com/hammasbuilds/urdu-nlp-toolkit"
-Changelog = "https://github.com/hammasbuilds/urdu-nlp-toolkit/releases"
-"Corpus measurements" = "https://github.com/hammasbuilds/urdu-nlp-toolkit/blob/main/docs/CORPUS.md"
+Homepage = "https://github.com/hammasbuilds/urdunlp"
+Issues = "https://github.com/hammasbuilds/urdunlp/issues"
+Source = "https://github.com/hammasbuilds/urdunlp"
+Changelog = "https://github.com/hammasbuilds/urdunlp/releases"
+"Corpus measurements" = "https://github.com/hammasbuilds/urdunlp/blob/main/docs/CORPUS.md"
 
 [dependency-groups]
 dev = ["pytest>=8.3", "ruff>=0.8"]

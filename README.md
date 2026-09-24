@@ -1,22 +1,22 @@
-<h1 align="center">urdu-nlp-toolkit (Python · Unicode normalisation · transliteration)</h1>
+<h1 align="center">urdunlp (Python · Unicode normalisation · transliteration)</h1>
 <p align="center"><i>Urdu and Roman Urdu text processing. Pure Python, zero dependencies, no model downloads</i></p>
 
 <p align="center">
   <a href="#why-this-exists">Why this exists</a> &middot;
   <a href="#what-it-does">What it does</a> &middot;
   <a href="#install">Install</a> &middot;
-  <a href="https://github.com/hammasbuilds/urdu-nlp-toolkit/blob/main/docs/CORPUS.md">Measured on 84,581 articles</a> &middot;
+  <a href="https://github.com/hammasbuilds/urdunlp/blob/main/docs/CORPUS.md">Measured on 84,581 articles</a> &middot;
   <a href="#known-limits">Known limits</a> &middot;
   <a href="#problems-hit-while-building-this">Problems hit</a>
 </p>
 
 <p align="center">
-  <a href="https://github.com/hammasbuilds/urdu-nlp-toolkit/actions/workflows/ci.yml"><img src="https://github.com/hammasbuilds/urdu-nlp-toolkit/actions/workflows/ci.yml/badge.svg" alt="ci"></a>
+  <a href="https://github.com/hammasbuilds/urdunlp/actions/workflows/ci.yml"><img src="https://github.com/hammasbuilds/urdunlp/actions/workflows/ci.yml/badge.svg" alt="ci"></a>
   <a href="https://pypi.org/project/urdunlp/"><img src="https://img.shields.io/pypi/v/urdunlp" alt="pypi"></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="python">
   <img src="https://img.shields.io/badge/dependencies-zero-success" alt="deps">
   <img src="https://img.shields.io/badge/model%20downloads-none-success" alt="downloads">
-  <a href="https://github.com/hammasbuilds/urdu-nlp-toolkit/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="license"></a>
+  <a href="https://github.com/hammasbuilds/urdunlp/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="license"></a>
 </p>
 
 ---
@@ -68,7 +68,7 @@ eleven — contain an Arabic codepoint standing in for an Urdu one.** 20,555 occ
 `U+064A` ARABIC YEH alone, in professionally edited copy. Unicode NFC does not touch any of
 them, because they are genuinely different letters used by different languages.
 
-&#128202; **[Every claim on this page, measured against the corpus &rarr;](https://github.com/hammasbuilds/urdu-nlp-toolkit/blob/main/docs/CORPUS.md)**
+&#128202; **[Every claim on this page, measured against the corpus &rarr;](https://github.com/hammasbuilds/urdunlp/blob/main/docs/CORPUS.md)**
 
 ### Roman Urdu, which is what people actually type
 
@@ -159,7 +159,7 @@ The distribution is `urdunlp`, which is also the import name. Until the first
 release lands, install from the repository:
 
 ```bash
-pip install git+https://github.com/hammasbuilds/urdu-nlp-toolkit
+pip install git+https://github.com/hammasbuilds/urdunlp
 ```
 
 No dependencies, deliberately. This is the layer other Urdu projects sit on, and a
@@ -171,8 +171,8 @@ annotation rather than falling back to `Any`.
 From a clone, there is nothing to install at all:
 
 ```bash
-git clone https://github.com/hammasbuilds/urdu-nlp-toolkit
-cd urdu-nlp-toolkit
+git clone https://github.com/hammasbuilds/urdunlp
+cd urdunlp
 python demo.py
 pytest -q          # 57 tests, no install step needed
 ```
@@ -270,8 +270,8 @@ MIT
 ## Run it yourself
 
 ```bash
-git clone https://github.com/hammasbuilds/urdu-nlp-toolkit
-cd urdu-nlp-toolkit
+git clone https://github.com/hammasbuilds/urdunlp
+cd urdunlp
 
 pytest -q               # 57 tests, no install step needed
 python demo.py          # see it work

@@ -39,4 +39,4 @@ First release.
   first, so CI was green while every clone was broken.
 - The README documented `pip install urdu-nlp-toolkit`, which returned 404.
 
-[0.1.0]: https://github.com/hammasbuilds/urdu-nlp-toolkit/releases/tag/v0.1.0
+[0.1.0]: https://github.com/hammasbuilds/urdunlp/releases/tag/v0.1.0
