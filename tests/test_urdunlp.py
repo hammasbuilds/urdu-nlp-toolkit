@@ -42,6 +42,53 @@ class TestNormalize:
         """The whole point: the same word must compare equal after normalisation."""
         assert normalize("كتاب") == normalize("کتاب")
 
+    @pytest.mark.parametrize(
+        ("raw", "expected"),
+        [
+            ("بهی", "بھی"),  # bh - aspiration
+            ("تها", "تھا"),  # th
+            ("کچه", "کچھ"),  # ch
+            ("مجهے", "مجھے"),  # jh
+            ("گهر", "گھر"),  # gh
+            ("سنده", "سندھ"),  # dh, word-final
+            ("نه", "نہ"),  # ن does not aspirate -> ordinary h
+            ("الله", "اللہ"),  # ل does not aspirate -> ordinary h
+        ],
+    )
+    def test_stray_arabic_heh_resolves_by_context(self, raw, expected):
+        """ARABIC HEH has no single Urdu counterpart: it stands for ہ (an ordinary
+        h) or ھ (aspiration) depending on what precedes it.
+
+        The module docstring used to name ه -> ہ as one of its three headline
+        examples, and the mapping table did not contain ه at all - so the case it
+        advertised was the one case it did not handle. Mapping it to ہ everywhere,
+        as the docstring said, is correct for 9.0% of the corpus occurrences that
+        can be adjudicated; resolving by context is correct for 96.9%.
+
+        The reason is mechanical: a keyboard missing ھ is a keyboard missing bh,
+        ph, th, kh and gh, so that is where the substitution shows up.
+        """
+        assert normalize(raw) == expected
+
+    def test_resolving_heh_does_not_invent_aspiration_after_a_plain_consonant(self):
+        """ل is excluded from the aspirable set on purpose. Including it would
+        spell الله as اللھ, which is not a word."""
+        assert "ھ" not in normalize("الله")
+
+    def test_is_urdu_and_the_tokeniser_agree_on_what_counts_as_urdu(self):
+        """`is_urdu` checked two Unicode blocks, the tokeniser checked four, so a
+        string could be split into Urdu word tokens and reported as not Urdu in the
+        same breath.
+
+        Arabic Presentation Forms-B is the block that matters: it is what PDF text
+        layers and older systems emit. Rare in edited prose - 231 characters across
+        83 of 84,581 corpus articles - but two functions in one toolkit disagreeing
+        about what Urdu is, is a defect at any frequency.
+        """
+        presentation_forms = "ﻛﺗﺎﺏ"  # کتاب, as a PDF might emit it
+        assert words(presentation_forms), "the tokeniser treats these as Urdu letters"
+        assert is_urdu(presentation_forms), "so is_urdu must not call them non-Urdu"
+
     def test_idempotent(self):
         once = normalize("كتاب کِتاب")
         assert normalize(once) == once

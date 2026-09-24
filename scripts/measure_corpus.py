@@ -46,6 +46,12 @@ SUBSTITUTED = {
     "ك": "ARABIC KAF -> KEHEH",
     "ة": "TEH MARBUTA -> HEH GOAL",
     "ى": "ALEF MAKSURA -> FARSI YEH",
+    # Added after the fact. This set and normalize()'s table were written from the
+    # same list, so the letter missing from one was missing from the other, and the
+    # published 8.8% was measuring only the letters the code already handled. A
+    # measurement that shares its blind spot with the thing it measures cannot find
+    # the gap; it reports a clean bill of health for the part nobody looked at.
+    "ه": "ARABIC HEH -> DOACHASHMEE HE or HEH GOAL, by context",
 }
 
 

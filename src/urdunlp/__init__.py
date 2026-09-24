@@ -9,7 +9,7 @@ Pure Python, no dependencies, no model downloads.
     'میں ٹھیک ہوں'
 """
 
-from .normalize import is_urdu, normalize, remove_urls_and_mentions
+from .normalize import is_urdu, normalize, remove_urls_and_mentions, resolve_arabic_heh
 from .stopwords import NEGATION, STOPWORDS, is_stopword, remove_stopwords
 from .tokenize import character_ngrams, fix_spacing, sentences, words
 from .translit import (
@@ -30,6 +30,7 @@ __all__ = [
     "normalize",
     "remove_stopwords",
     "remove_urls_and_mentions",
+    "resolve_arabic_heh",
     "sentences",
     "transliterate_to_roman",
     "transliterate_to_urdu",

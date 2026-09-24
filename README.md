@@ -53,7 +53,14 @@ them:
 |---|---|---|
 | ی | `U+064A` ARABIC YEH | `U+06CC` FARSI YEH |
 | ک | `U+0643` ARABIC KAF | `U+06A9` KEHEH |
-| ہ | `U+0647` ARABIC HEH | `U+06C1` HEH GOAL |
+| ہ | `U+0647` ARABIC HEH | `U+06C1` HEH GOAL **or** `U+06BE` DOACHASHMEE HE |
+
+The third row is not a typo. `ه` is the one substitution with **two** possible answers:
+Urdu writes an ordinary *h* as `ہ` and aspiration as `ھ`, and which one a stray `ه` stands
+for depends on the letter before it. Mapping it to `ہ` everywhere — the obvious reading,
+and what this README used to say — is correct for
+[9.0% of the corpus occurrences, against 96.9% for resolving by
+context](https://github.com/hammasbuilds/urdunlp/blob/main/docs/CORPUS.md#the-obvious-mapping-for-arabic-heh-is-wrong-nine-times-in-ten).
 
 They render identically and compare unequal. Without normalisation, exact match fails,
 vocabularies fragment, and every downstream model quietly learns three versions of the
@@ -63,7 +70,7 @@ same word.
 normalize("كتاب") == normalize("کتاب")   # True. Without it: False.
 ```
 
-**Measured on 84,581 BBC Urdu news articles** (44.7M tokens): **7,410 articles — one in
+**Measured on 84,581 BBC Urdu news articles** (44.7M tokens): **7,495 articles — one in
 eleven — contain an Arabic codepoint standing in for an Urdu one.** 20,555 occurrences of
 `U+064A` ARABIC YEH alone, in professionally edited copy. Unicode NFC does not touch any of
 them, because they are genuinely different letters used by different languages.
@@ -107,7 +114,7 @@ corpus at all.
 
 ### Transliteration is lossy, and the default is the worse round-trip
 
-Round-tripping 457,428 sampled tokens, Urdu → Roman → Urdu:
+Round-tripping 457,380 sampled tokens, Urdu → Roman → Urdu:
 
 | `insert_short_vowels` | Exact round-trip |
 |---|---:|
@@ -174,7 +181,7 @@ From a clone, there is nothing to install at all:
 git clone https://github.com/hammasbuilds/urdunlp
 cd urdunlp
 python demo.py
-pytest -q          # 57 tests, no install step needed
+pytest -q          # 74 tests, no install step needed
 ```
 
 ---
@@ -238,7 +245,7 @@ Stated plainly, because a toolkit that overclaims wastes its users' time:
   syntax and passed through untouched. Strip English spans yourself if you have a
   reliable way to find them.
 - **Urdu → Roman is lossy and one-way.** س ص ث all give `s`; the merge cannot be
-  undone. Measured over 457,428 corpus tokens, **44.7% survive a round-trip** with the
+  undone. Measured over 457,380 corpus tokens, **44.7% survive a round-trip** with the
   default settings and **61.2% with `insert_short_vowels=False`**. The remaining 38.8%
   is letter collapse that no setting recovers — ح/ہ/ھ all `h`, خ and کھ both `kh`, and
   ں nasalisation written as a plain `n`.
@@ -273,7 +280,7 @@ MIT
 git clone https://github.com/hammasbuilds/urdunlp
 cd urdunlp
 
-pytest -q               # 57 tests, no install step needed
+pytest -q               # 74 tests, no install step needed
 python demo.py          # see it work
 ```
 
@@ -332,6 +339,20 @@ confident bad guess rather than a no-op. *Fixed* with an `already-urdu` source a
 in Roman and no lexicon covers proper nouns. The published output was what a reader
 expects rather than what the function does. *Fixed*, and pinned by a test so the
 documented example cannot drift from the code again.
+
+**The normaliser advertised a mapping it did not have, and the obvious version of it
+would have been wrong.** The module docstring named three examples of the problem it
+solves, and the third — `ه` U+0647 ARABIC HEH → `ہ` U+06C1 HEH GOAL — was not in the
+mapping table at all. The measurement script missed it for the same reason: its
+substitution list and the table were written from the same list of letters, so the
+measurement shared the code's blind spot and reported a clean result for the part nobody
+had looked at. Worse, implementing what the docstring said would have made things worse:
+`ه` has *two* Urdu counterparts, `ہ` (ordinary *h*) and `ھ` (aspiration), and adjudicating
+all 977 corpus occurrences against the vocabulary gives **9.0% correct for "always `ہ`"
+against 96.9% for resolving by the preceding consonant.** A keyboard missing `ھ` is a
+keyboard missing *bh, ph, th, kh, gh*, which is where the substitution actually appears.
+*Fixed* with `resolve_arabic_heh`, exported and documented as a heuristic — the residual
+3.1% are words like بہار (spring) and بھار (weight) that differ only in this letter.
 
 **`fix_spacing` missed a fifth of the compounds it exists to repair.** It split the
 input on whitespace, so any punctuation stayed glued to the token: `کردیا` matched the

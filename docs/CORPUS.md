@@ -19,7 +19,7 @@ python scripts/measure_corpus.py <directory-of-txt-or-a-parquet> --json out.json
 | Articles | 84,581 |
 | Characters | 206,887,475 |
 | Tokens | 44,698,779 |
-| Distinct normalised types | 353,653 |
+| Distinct normalised types | 353,358 |
 
 ---
 
@@ -27,33 +27,76 @@ python scripts/measure_corpus.py <directory-of-txt-or-a-parquet> --json out.json
 
 The README claims scraped Urdu freely mixes Arabic codepoints with Urdu ones. It does.
 
-**7,410 of 84,581 articles (8.8%)** contain at least one Arabic letter standing in for its
+**7,495 of 84,581 articles (8.9%)** contain at least one Arabic letter standing in for its
 Urdu counterpart — in professionally edited BBC copy, not user-generated text.
 
 | Codepoint | Should be | Occurrences |
 |---|---|---:|
 | `U+064A` ARABIC YEH | `U+06CC` FARSI YEH | **20,555** |
 | `U+0643` ARABIC KAF | `U+06A9` KEHEH | **4,132** |
+| `U+0647` ARABIC HEH | `U+06BE` or `U+06C1`, by context | 981 |
 | `U+0649` ALEF MAKSURA | `U+06CC` FARSI YEH | 40 |
 | `U+0629` TEH MARBUTA | `U+06C1` HEH GOAL | 20 |
 
-`normalize()` fixes **23,084 tokens** that Unicode NFC leaves alone, because these are
+The heh row is a late addition, and the reason it was missing is worth stating: this
+script's substitution list and `normalize()`'s mapping table were written from the same
+list of letters. The one absent from the table was absent from the measurement too, so the
+figure published here was counting only the letters the code already handled. A
+measurement that shares a blind spot with the code it measures cannot find the gap — it
+returns a clean result for the part nobody looked at. The earlier figure was 8.8%.
+
+`normalize()` fixes **24,046 tokens** that Unicode NFC leaves alone, because these are
 genuinely distinct codepoints for distinct languages.
 
 Nearly one article in eleven. Any exact-match lookup, vocabulary build or deduplication
 over this corpus is silently wrong without normalisation.
 
-## 2. Normalisation moves 0.59% of tokens, and merges 14,442 types
+### The obvious mapping for ARABIC HEH is wrong nine times in ten
+
+The other four letters have one Urdu counterpart each. `ه` has two, and Urdu uses them for
+different jobs:
+
+| | | |
+|---|---|---|
+| `ہ` | `U+06C1` HEH GOAL | an ordinary *h* — نہ, اللہ |
+| `ھ` | `U+06BE` DOACHASHMEE HE | aspiration — بھی, تھا, کھانا |
+
+Which one a stray `ه` stands for is decided by the letter before it. That can be checked
+rather than argued about: a token containing no `ه` is correctly spelled by definition, so
+the corpus vocabulary adjudicates each candidate spelling. Of the 977 occurrences, 934
+have at least one candidate the corpus recognises:
+
+| rule | correct |
+|---|---:|
+| always `ہ` — what this toolkit's docstring promised | 84/934 = **9.0%** |
+| `ھ` after an aspirable consonant, else `ہ` | 905/934 = **96.9%** |
+
+The intuitive mapping is wrong more than nine times in ten, and the reason is mechanical:
+a keyboard without `ھ` is a keyboard without *bh, ph, th, kh, gh*, so that is where the
+substitution turns up. `بهی` outnumbers everything else in the list.
+
+```
+لکها   ->  لکھا   seen 12,909 times    vs  لکہا   seen 1
+سنده   ->  سندھ   seen 13,399 times    vs  سندہ   seen 93
+نه     ->  نہ     seen 75,285 times    vs  نھ     seen 1
+```
+
+The remaining 3.1% is not noise to be engineered away: بہار (spring) and بھار (weight)
+differ only in this letter, and nothing context-free separates them. `resolve_arabic_heh`
+is exported so the heuristic can be applied, inspected or switched off, rather than
+presented as a rule.
+
+## 2. Normalisation moves 0.59% of tokens, and merges 14,611 types
 
 | | |
 |---|---:|
 | Raw whitespace tokens | 44,682,626 |
-| Changed by `normalize()` | **262,881** (0.59%) |
-| Types written more than one way | **14,442** |
-| Tokens moved onto the majority spelling | 209,990 |
+| Changed by `normalize()` | **263,833** (0.59%) |
+| Types written more than one way | **14,611** |
+| Tokens moved onto the majority spelling | 210,906 |
 
-0.59% sounds small until you notice it is concentrated: 14,442 distinct words appear in two
-or more spellings, and 209,990 token instances are the minority form. Those are exactly the
+0.59% sounds small until you notice it is concentrated: 14,611 distinct words appear in two
+or more spellings, and 210,906 token instances are the minority form. Those are exactly the
 words a vocabulary fragments on.
 
 ## 3. 115 stopwords cover 41.4% of running text
@@ -65,7 +108,7 @@ which is where most tokens in real text actually are". Measured:
 |---|---:|
 | Stopword list size | 115 |
 | Entries that appear in the corpus | **114 of 115** |
-| Token hits | 18,492,075 |
+| Token hits | 18,492,484 |
 | **Share of all tokens** | **41.4%** |
 
 114 of 115 entries earn their place. The ten most frequent types in 44.7M tokens:
@@ -75,15 +118,15 @@ which is where most tokens in real text actually are". Measured:
 | کے | 2,047,014 | اور | 830,808 |
 | میں | 1,472,477 | کہ | 770,042 |
 | کی | 1,327,136 | نے | 758,610 |
-| ہے | 1,093,614 | کا | 713,233 |
+| ہے | 1,093,615 | کا | 713,233 |
 | سے | 893,078 | کو | 670,246 |
 
 Every one is a function word. That is the claim, measured.
 
 ## 4. Transliteration is lossy — and the default setting is the worse one
 
-Round-tripping Urdu → Roman → Urdu on **457,428 sampled tokens** (every 97th, spread across
-the whole corpus, 21,653 distinct types):
+Round-tripping Urdu → Roman → Urdu on **457,380 sampled tokens** (every 97th, spread across
+the whole corpus, 21,766 distinct types):
 
 | `insert_short_vowels` | Exact round-trip |
 |---|---:|
@@ -192,7 +235,7 @@ a side effect of inserting one.
 
 **One corpus, one register.** XL-Sum Urdu is edited BBC news prose. Social media, legal
 text, poetry and transcribed speech all differ, and the Arabic-substitution rate is very
-likely *higher* in user-generated text than the 8.8% measured in professional copy.
+likely *higher* in user-generated text than the 8.9% measured in professional copy.
 
 **No Roman Urdu corpus.** Every number about the Roman → Urdu direction here is derived by
 round-tripping Urdu, which is not the same as measuring real Roman Urdu input. A corpus of
