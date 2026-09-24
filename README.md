@@ -12,11 +12,11 @@
 
 <p align="center">
   <a href="https://github.com/hammasbuilds/urdu-nlp-toolkit/actions/workflows/ci.yml"><img src="https://github.com/hammasbuilds/urdu-nlp-toolkit/actions/workflows/ci.yml/badge.svg" alt="ci"></a>
-  <a href="https://pypi.org/project/urdu-nlp-toolkit/"><img src="https://img.shields.io/pypi/v/urdu-nlp-toolkit" alt="pypi"></a>
+  <a href="https://pypi.org/project/urdunlp/"><img src="https://img.shields.io/pypi/v/urdunlp" alt="pypi"></a>
   <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="python">
   <img src="https://img.shields.io/badge/dependencies-zero-success" alt="deps">
   <img src="https://img.shields.io/badge/model%20downloads-none-success" alt="downloads">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="license"></a>
+  <a href="https://github.com/hammasbuilds/urdu-nlp-toolkit/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="license"></a>
 </p>
 
 ---
@@ -152,10 +152,11 @@ remove_stopwords(words("یہ اچھا نہیں ہے"))   # ['اچھا', 'نہی�
 ## Install
 
 ```bash
-pip install urdu-nlp-toolkit
+pip install urdunlp
 ```
 
-Until the first release lands on PyPI, install from the repository:
+The distribution is `urdunlp`, which is also the import name. Until the first
+release lands, install from the repository:
 
 ```bash
 pip install git+https://github.com/hammasbuilds/urdu-nlp-toolkit

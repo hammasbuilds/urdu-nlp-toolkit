@@ -1,5 +1,10 @@
 [project]
-name = "urdu-nlp-toolkit"
+# Published as `urdunlp`, which is also the import name - `pip install urdunlp`
+# then `import urdunlp`, with no translation step. `urdu-nlp-toolkit` overclaims:
+# this is normalisation and tokenisation, not a comprehensive toolkit, and
+# `urdu-nlp` already exists on PyPI with nearly the same pitch. The GitHub repo
+# keeps its name; only the distribution name changes.
+name = "urdunlp"
 version = "0.1.0"
 description = "Urdu and Roman Urdu text processing: normalisation, tokenisation, transliteration, stopwords. Pure Python, no dependencies."
 readme = "README.md"

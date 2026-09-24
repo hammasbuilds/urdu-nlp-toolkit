@@ -13,7 +13,7 @@ name: release
 # ONE-TIME SETUP, before the first tag (the publish fails without it):
 #   1. https://pypi.org/manage/account/publishing/
 #   2. Add a "pending publisher" with:
-#        PyPI project name:  urdu-nlp-toolkit
+#        PyPI project name:  urdunlp
 #        Owner:              hammasbuilds
 #        Repository name:    urdu-nlp-toolkit
 #        Workflow name:      release.yml
